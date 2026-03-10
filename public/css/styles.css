@@ -1642,7 +1642,38 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator {
 }
 
 /* =============================================
-   RESPONSIVE
+   SIDEBAR BACKDROP (mobile overlay)
+============================================= */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.sidebar-backdrop.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Hamburger btn (solo visible en móvil) */
+.mobile-menu-btn {
+  display: none;
+  color: var(--text);
+  font-size: 20px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.mobile-menu-btn:hover { background: var(--bg-card); }
+
+/* =============================================
+   RESPONSIVE — Tablet 900px
 ============================================= */
 @media (max-width: 900px) {
   .sidebar { width: 60px; }
@@ -1656,8 +1687,98 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator {
   .grid-2, .task-columns, .stats-grid { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 600px) {
-  .section { padding: 16px; gap: 16px; }
-  .topbar  { padding: 0 16px; }
-  .stats-grid { grid-template-columns: 1fr; }
+/* =============================================
+   RESPONSIVE — Móvil 640px
+============================================= */
+@media (max-width: 640px) {
+  /* Sidebar completamente oculto por defecto */
+  .sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-w) !important;
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: none;
+    z-index: 200;
+  }
+  /* Mostrar texto y items normales cuando abre */
+  .sidebar .logo-text,
+  .sidebar .nav-item span,
+  .sidebar .user-info { display: flex !important; }
+  .sidebar .user-info { display: flex; flex-direction: column; }
+  .nav-item {
+    justify-content: flex-start !important;
+    padding: 10px 12px !important;
+  }
+  .nav-item.active::before { display: block !important; }
+
+  /* Sidebar abierto */
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.6);
+  }
+
+  /* El main ocupa toda la pantalla */
+  .main { margin-left: 0 !important; }
+
+  /* Mostrar botón hamburguesa */
+  .mobile-menu-btn { display: flex; align-items: center; }
+
+  /* Ocultar toggle dentro del sidebar en móvil (el botón de las 3 rayas está en el topbar) */
+  .sidebar-toggle { display: none; }
+
+  /* Topbar más compacto */
+  .topbar { padding: 0 14px; gap: 8px; }
+  .topbar-left { gap: 10px; }
+  .page-title { font-size: 16px; }
+  .page-date { display: none; }
+
+  /* Secciones */
+  .section { padding: 14px; gap: 14px; }
+
+  /* Stats: 2 columnas en móvil */
+  .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
+  .stat-card { padding: 14px 12px; }
+  .stat-value { font-size: 18px; }
+
+  /* Cards */
+  .card { border-radius: 12px; }
+  .card-header { padding: 14px 16px; }
+  .card-body { padding: 14px 16px; }
+
+  /* Capital card */
+  .capital-card { padding: 18px 16px; }
+  .capital-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .capital-amount { font-size: 28px; }
+
+  /* Botón primario más pequeño en topbar */
+  #btnPrimaryAction .btn-text,
+  #btnPrimaryText { font-size: 13px; }
+
+  /* Formularios: columnas apiladas */
+  .form-row { flex-direction: column; gap: 0; }
+
+  /* Cursos — 1 columna */
+  #aulaContainer { grid-template-columns: 1fr !important; }
+
+  /* Modales ocupan casi toda la pantalla */
+  .modal {
+    width: calc(100vw - 24px) !important;
+    max-width: 100% !important;
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 0 12px;
+  }
+  .modal-overlay { align-items: flex-end; padding-bottom: 0; }
+  .modal { border-radius: 20px 20px 0 0 !important; }
+
+  /* Tabla tareas: ocultar columnas menos importantes */
+  .task-table th:nth-child(2),
+  .task-table td:nth-child(2) { display: none; }
+
+  /* Grids → 1 col */
+  .grid-2, .task-columns { grid-template-columns: 1fr !important; }
+
+  /* Calendar */
+  .cal-day { min-height: 44px; font-size: 12px; }
+  .cal-day-num { font-size: 12px; }
+  .calendar-wrap { overflow-x: auto; }
 }

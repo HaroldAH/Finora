@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=3" />
+  <link rel="stylesheet" href="css/styles.css?v=4" />
 </head>
 <body>
 
@@ -67,12 +67,16 @@
     </div>
   </aside>
 
+  <!-- Backdrop oscuro cuando el sidebar está abierto en móvil -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
   <!-- MAIN CONTENT -->
   <main class="main" id="main">
 
     <!-- TOP BAR -->
     <header class="topbar">
       <div class="topbar-left">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Abrir menú">&#9776;</button>
         <h1 class="page-title" id="pageTitle">Dashboard</h1>
         <span class="page-date" id="pageDate"></span>
       </div>
@@ -447,6 +451,6 @@
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
-  <script src="js/app.js?v=5"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

@@ -35,6 +35,27 @@ async function apiFetch(url, opts = {}) {
   return data;
 }
 
+// ── Mobile Sidebar ────────────────────────────────────────────────────────────
+const _sidebar   = document.getElementById("sidebar");
+const _backdrop  = document.getElementById("sidebarBackdrop");
+const _menuBtn   = document.getElementById("mobileMenuBtn");
+
+function openMobileSidebar() {
+  _sidebar.classList.add("open");
+  _backdrop.classList.add("active");
+  document.body.style.overflow = "hidden";
+}
+function closeMobileSidebar() {
+  _sidebar.classList.remove("open");
+  _backdrop.classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+_menuBtn.addEventListener("click", () => {
+  _sidebar.classList.contains("open") ? closeMobileSidebar() : openMobileSidebar();
+});
+_backdrop.addEventListener("click", closeMobileSidebar);
+
 // ── Navigation ───────────────────────────────────────────────────────────────
 const sections = {
   dashboard:    { title: "Dashboard",    btnText: null },
@@ -72,7 +93,10 @@ document.querySelectorAll(".nav-item, [data-section]").forEach(el => {
   el.addEventListener("click", (e) => {
     e.preventDefault();
     const sec = el.dataset.section;
-    if (sec) navigate(sec);
+    if (sec) {
+      navigate(sec);
+      closeMobileSidebar(); // cierra en móvil al seleccionar sección
+    }
   });
 });
 
