@@ -1736,13 +1736,14 @@ async function iaAnalizar() {
       <div style="text-align:center;padding:36px 20px">
         <div style="font-size:44px;margin-bottom:14px">⚠️</div>
         <p style="font-weight:600;color:var(--red);font-size:15px">${escHtml(e.message)}</p>
-        ${e.message.includes("OPENAI_API_KEY") ? `
+        ${e.message.includes("GEMINI_API_KEY") ? `
         <div class="ia-key-hint">
-          <p style="font-weight:600;margin-bottom:8px">¿Cómo configurar la clave?</p>
-          <ol style="text-align:left;font-size:12px;line-height:1.8;padding-left:18px">
-            <li>Ve a <strong>platform.openai.com/api-keys</strong></li>
-            <li>Crea una API Key</li>
-            <li>En Railway → tu app → Variables → agrega <code style="background:var(--bg-card-2);padding:2px 5px;border-radius:4px">OPENAI_API_KEY</code></li>
+          <p style="font-weight:600;margin-bottom:8px">Cómo obtener la clave GRATIS (≠2 min)</p>
+          <ol style="text-align:left;font-size:12px;line-height:1.9;padding-left:18px">
+            <li>Entrá a <strong>aistudio.google.com/app/apikey</strong></li>
+            <li>Clic en <strong>"Create API Key"</strong></li>
+            <li>Copiá la clave</li>
+            <li>En Railway → Finora → <strong>Variables</strong> → agrega:<br/><code style="background:var(--bg-card-2);padding:2px 6px;border-radius:4px">GEMINI_API_KEY</code> = tu clave</li>
           </ol>
         </div>` : ""}
         <div class="form-actions" style="margin-top:20px;justify-content:center">

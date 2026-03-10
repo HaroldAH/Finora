@@ -1,7 +1,7 @@
 const express = require("express");
 const router  = express.Router();
 const multer  = require("multer");
-const { OpenAI } = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // ── Multer: imágenes en memoria (sin escribir al disco) ──────────────────────
 const upload = multer({
@@ -54,9 +54,9 @@ Reglas estrictas:
 // ── POST /api/ia/analizar ─────────────────────────────────────────────────────
 router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
   // Verificar que la API key esté configurada
-  if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.trim() === "") {
+  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim() === "") {
     return res.status(503).json({
-      error: "La clave de OpenAI no está configurada. Agrega OPENAI_API_KEY en las Variables de Railway.",
+      error: "GEMINI_API_KEY no configurada. Sigue los pasos para obtenerla gratis en aistudio.google.com/app/apikey",
     });
   }
 
@@ -65,31 +65,26 @@ router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
   }
 
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // gemini-1.5-flash: gratis, rápido, soporta visión
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Construir el mensaje: texto + imágenes en base64
-    const contentParts = [
-      { type: "text", text: "Analiza estas imágenes académicas y extrae cursos y tareas pendientes:" },
+    // Construir partes: prompt de texto + imágenes en base64
+    const parts = [
+      { text: buildPrompt() },
       ...req.files.map(f => ({
-        type: "image_url",
-        image_url: {
-          url: `data:${f.mimetype};base64,${f.buffer.toString("base64")}`,
-          detail: "high",
+        inlineData: {
+          data: f.buffer.toString("base64"),
+          mimeType: f.mimetype,
         },
       })),
     ];
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: buildPrompt() },
-        { role: "user",   content: contentParts },
-      ],
-      max_tokens: 2000,
-    });
-
-    const raw = JSON.parse(completion.choices[0].message.content);
+    const result  = await model.generateContent(parts);
+    const rawText = result.response.text().trim();
+    // Quitar posibles bloques ```json ... ``` que el modelo a veces añade
+    const jsonStr = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+    const raw = JSON.parse(jsonStr);
     const COLORS = ["#f97316","#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#06b6d4","#ec4899"];
 
     // Sanitizar y validar la respuesta
