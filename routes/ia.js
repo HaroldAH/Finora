@@ -36,7 +36,7 @@ router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
   try {
     const groq = new Groq({ apiKey: GROQ_KEY });
     const response = await groq.chat.completions.create({
-      model: "llama-3.2-11b-vision-preview",
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
       messages: [{
         role: "user",
         content: [
