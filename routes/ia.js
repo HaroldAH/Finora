@@ -62,7 +62,7 @@ router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
     // gemini-1.5-flash: gratis, rápido, soporta visión
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Construir partes: prompt de texto + imágenes en base64
     const parts = [
