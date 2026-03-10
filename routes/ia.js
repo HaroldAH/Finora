@@ -53,7 +53,12 @@ Reglas estrictas:
 
 // ── POST /api/ia/analizar ─────────────────────────────────────────────────────
 router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
-  const GEMINI_KEY = process.env.GEMINI_API_KEY || "AIzaSyA-_aJeA89BAE2VD2_oJyHq1iGEpiVsZeI";
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
+    return res.status(503).json({
+      error: "GEMINI_API_KEY no configurada. Sigue los pasos para obtenerla gratis en aistudio.google.com/app/apikey",
+    });
+  }
 
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No se recibieron imágenes." });
