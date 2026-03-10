@@ -1642,6 +1642,156 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator {
 }
 
 /* =============================================
+   IA AUTO-DETECT
+============================================= */
+
+/* Toolbar en aula virtual */
+.aula-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+/* Botón IA con gradiente morado/azul */
+.btn-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(139,92,246,0.18), rgba(59,130,246,0.18));
+  border: 1px solid rgba(139,92,246,0.45);
+  color: #c4b5fd;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.btn-ai:hover {
+  background: linear-gradient(135deg, rgba(139,92,246,0.28), rgba(59,130,246,0.28));
+  border-color: rgba(139,92,246,0.7);
+  color: #ddd6fe;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(139,92,246,0.2);
+}
+
+/* Zona de drop */
+.ia-drop-zone {
+  border: 2px dashed var(--border-2);
+  border-radius: 14px;
+  padding: 34px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+.ia-drop-zone:hover,
+.ia-drop-zone.drag-over {
+  border-color: var(--orange);
+  background: var(--orange-glow2);
+}
+
+/* Spinner de carga */
+@keyframes ia-spin { to { transform: rotate(360deg); } }
+.ia-spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: ia-spin 0.75s linear infinite;
+  margin: 0 auto;
+}
+
+/* Scroll para el preview */
+.ia-preview-scroll {
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Sección del preview (cursos / tareas) */
+.ia-preview-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+/* Fila curso o tarea en el preview */
+.ia-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 3px;
+  border: 1px solid transparent;
+}
+.ia-preview-row:hover { background: rgba(255,255,255,0.05); }
+.ia-preview-row.ia-dup { opacity: 0.5; }
+
+/* Dot de color del curso */
+.ia-color-dot {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Info del item */
+.ia-preview-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ia-preview-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ia-preview-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Badge "ya existe" */
+.ia-dup-badge {
+  font-size: 10px;
+  background: rgba(234,179,8,0.13);
+  color: var(--yellow);
+  border: 1px solid rgba(234,179,8,0.3);
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Caja de ayuda para configurar API key */
+.ia-key-hint {
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 14px 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: left;
+}
+
+/* =============================================
    SIDEBAR BACKDROP (mobile overlay)
 ============================================= */
 .sidebar-backdrop {

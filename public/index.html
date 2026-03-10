@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=4" />
+  <link rel="stylesheet" href="css/styles.css?v=5" />
 </head>
 <body>
 
@@ -426,6 +426,12 @@
 
     <!-- ===== SECTION: AULA VIRTUAL ===== -->
     <section class="section" id="section-aula">
+      <div class="aula-toolbar">
+        <button class="btn btn-ai" onclick="openIAModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2a9 9 0 1 0 9 9"/><path d="M12 8v4l3 3"/><circle cx="18" cy="5" r="3" fill="currentColor" stroke="none"/></svg>
+          Auto-detectar con IA
+        </button>
+      </div>
       <div id="aulaContainer">
         <div class="aula-empty">
           <div style="font-size:48px;margin-bottom:14px">📚</div>
@@ -451,6 +457,6 @@
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
-  <script src="js/app.js?v=6"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>

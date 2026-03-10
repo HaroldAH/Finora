@@ -1624,6 +1624,270 @@ async function deleteEvaluacion(evalId, cursoId) {
   }
 }
 
+// ── IA AUTO-DETECT ────────────────────────────────────────────────────────────
+let _iaFiles    = [];
+let _iaResultado = null;
+
+function openIAModal() {
+  _iaFiles    = [];
+  _iaResultado = null;
+  openModal("🤖 Auto-detectar con Inteligencia Artificial", `
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
+      Sube fotos de tu Moodle, horario, silabo, WhatsApp con tareas, o cualquier documento académico.<br>
+      La IA extrae los cursos y tareas automáticamente.
+    </p>
+    <div class="ia-drop-zone" id="iaDropZone" onclick="document.getElementById('iaFileInput').click()">
+      <div style="font-size:42px;margin-bottom:10px">📷</div>
+      <p style="font-weight:600;font-size:15px;color:var(--text)">Arrastra imágenes aquí</p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:5px">o toca para seleccionar&nbsp;·&nbsp;Hasta 5 imágenes&nbsp;·&nbsp;JPG PNG WEBP</p>
+      <input type="file" id="iaFileInput" accept="image/*" multiple style="display:none" onchange="iaAgregarArchivos(this.files)" />
+    </div>
+    <div id="iaThumbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
+    <div id="iaMsg" style="margin-top:6px;font-size:13px;color:var(--text-muted)"></div>
+    <div class="form-actions" style="margin-top:18px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" id="iaBtnAnalizar" disabled onclick="iaAnalizar()">
+        🤖 Analizar con IA
+      </button>
+    </div>`);
+
+  // Drag & Drop
+  setTimeout(() => {
+    const zone = document.getElementById("iaDropZone");
+    if (!zone) return;
+    zone.addEventListener("dragover", e => {
+      e.preventDefault();
+      zone.classList.add("drag-over");
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+    zone.addEventListener("drop", e => {
+      e.preventDefault();
+      zone.classList.remove("drag-over");
+      iaAgregarArchivos(e.dataTransfer.files);
+    });
+  }, 80);
+}
+
+function iaAgregarArchivos(fileList) {
+  for (const f of fileList) {
+    if (_iaFiles.length >= 5) break;
+    if (!f.type.startsWith("image/")) continue;
+    _iaFiles.push(f);
+  }
+  _iaRenderThumbs();
+}
+
+function iaRemoverArchivo(idx) {
+  _iaFiles.splice(idx, 1);
+  _iaRenderThumbs();
+}
+
+function _iaRenderThumbs() {
+  const thumbs = document.getElementById("iaThumbs");
+  const btn    = document.getElementById("iaBtnAnalizar");
+  const msg    = document.getElementById("iaMsg");
+  if (!thumbs) return;
+
+  thumbs.innerHTML = _iaFiles.map((f, i) => {
+    const url = URL.createObjectURL(f);
+    return `<div style="position:relative">
+      <img src="${url}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--border)" />
+      <button onclick="iaRemoverArchivo(${i})"
+        style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
+               background:var(--red);color:#fff;font-size:10px;display:flex;align-items:center;
+               justify-content:center;border:none;cursor:pointer">✕</button>
+    </div>`;
+  }).join("");
+
+  if (_iaFiles.length > 0) {
+    btn.disabled = false;
+    msg.textContent = `${_iaFiles.length} imagen${_iaFiles.length !== 1 ? "es" : ""} lista${_iaFiles.length !== 1 ? "s" : ""} para analizar`;
+  } else {
+    btn.disabled = true;
+    msg.textContent = "";
+  }
+}
+
+async function iaAnalizar() {
+  if (_iaFiles.length === 0) return;
+
+  const body = document.getElementById("modalBody");
+  body.innerHTML = `
+    <div style="text-align:center;padding:50px 20px">
+      <div class="ia-spinner"></div>
+      <p style="margin-top:18px;font-weight:600;font-size:16px">Analizando con IA...</p>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:6px">Esto puede tomar 10–20 segundos</p>
+    </div>`;
+
+  try {
+    const fd = new FormData();
+    _iaFiles.forEach(f => fd.append("archivos", f));
+
+    const res  = await fetch("/api/ia/analizar", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error desconocido");
+
+    _iaResultado = data;
+    _iaMostrarPreview(data);
+  } catch (e) {
+    const body2 = document.getElementById("modalBody");
+    if (!body2) return;
+    body2.innerHTML = `
+      <div style="text-align:center;padding:36px 20px">
+        <div style="font-size:44px;margin-bottom:14px">⚠️</div>
+        <p style="font-weight:600;color:var(--red);font-size:15px">${escHtml(e.message)}</p>
+        ${e.message.includes("OPENAI_API_KEY") ? `
+        <div class="ia-key-hint">
+          <p style="font-weight:600;margin-bottom:8px">¿Cómo configurar la clave?</p>
+          <ol style="text-align:left;font-size:12px;line-height:1.8;padding-left:18px">
+            <li>Ve a <strong>platform.openai.com/api-keys</strong></li>
+            <li>Crea una API Key</li>
+            <li>En Railway → tu app → Variables → agrega <code style="background:var(--bg-card-2);padding:2px 5px;border-radius:4px">OPENAI_API_KEY</code></li>
+          </ol>
+        </div>` : ""}
+        <div class="form-actions" style="margin-top:20px;justify-content:center">
+          <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+          <button class="btn btn-primary" onclick="openIAModal()">Intentar de nuevo</button>
+        </div>
+      </div>`;
+  }
+}
+
+function _iaMostrarPreview({ cursos, tareas }) {
+  const body = document.getElementById("modalBody");
+  document.getElementById("modalTitle").textContent = "🤖 Revisá lo que detectó la IA";
+
+  if (cursos.length === 0 && tareas.length === 0) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:36px 20px">
+        <div style="font-size:44px;margin-bottom:14px">🤔</div>
+        <p style="font-weight:600;font-size:15px">No se detectó información académica</p>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:8px">
+          Intentá con una imagen más clara, con más texto visible, o con una captura del Moodle
+        </p>
+        <div class="form-actions" style="margin-top:20px;justify-content:center">
+          <button class="btn btn-ghost" onclick="closeModal()">Cerrar</button>
+          <button class="btn btn-primary" onclick="openIAModal()">Nueva imagen</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const existingNames = new Set(aulaCursos.map(c => c.nombre.toLowerCase()));
+
+  const cursosHtml = cursos.length === 0
+    ? `<p class="aula-no-tasks">No se detectaron cursos nuevos</p>`
+    : cursos.map((c, i) => {
+        const isDup = existingNames.has(c.nombre.toLowerCase());
+        return `
+          <label class="ia-preview-row${isDup ? " ia-dup" : ""}">
+            <input type="checkbox" class="ia-check-curso" data-idx="${i}"
+              ${isDup ? "" : "checked"}
+              style="accent-color:var(--orange);width:15px;height:15px;flex-shrink:0;cursor:pointer" />
+            <span class="ia-color-dot" style="background:${c.color || "var(--orange)"}"></span>
+            <div class="ia-preview-info">
+              <span class="ia-preview-name">${escHtml(c.nombre)}</span>
+              ${c.descripcion ? `<span class="ia-preview-sub">${escHtml(c.descripcion)}</span>` : ""}
+            </div>
+            ${isDup ? `<span class="ia-dup-badge">ya existe</span>` : ""}
+          </label>`;
+      }).join("");
+
+  const tareasHtml = tareas.length === 0
+    ? `<p class="aula-no-tasks">No se detectaron tareas</p>`
+    : tareas.map((t, i) => `
+        <label class="ia-preview-row">
+          <input type="checkbox" class="ia-check-tarea" data-idx="${i}" checked
+            style="accent-color:var(--orange);width:15px;height:15px;flex-shrink:0;cursor:pointer" />
+          <span class="task-priority-badge badge-${t.prioridad}">${t.prioridad}</span>
+          <div class="ia-preview-info">
+            <span class="ia-preview-name">${escHtml(t.titulo)}</span>
+            <span class="ia-preview-sub">
+              ${escHtml(t.materia)}${t.fecha_entrega ? " · 📅 " + fmtDate(t.fecha_entrega) : ""}
+            </span>
+          </div>
+        </label>`).join("");
+
+  body.innerHTML = `
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px">
+      Desmarcá lo que no quieras importar. Los cursos que ya existen vienen desmarcados.
+    </p>
+    <div class="ia-preview-scroll">
+      <div class="ia-preview-section">
+        <div class="ia-preview-section-title">📚 Cursos detectados (${cursos.length})</div>
+        ${cursosHtml}
+      </div>
+      <div class="ia-preview-section" style="margin-top:16px">
+        <div class="ia-preview-section-title">📋 Tareas detectadas (${tareas.length})</div>
+        ${tareasHtml}
+      </div>
+    </div>
+    <div class="form-actions" style="margin-top:18px">
+      <button class="btn btn-ghost" onclick="openIAModal()">← Otra imagen</button>
+      <button class="btn btn-primary" onclick="iaImportar()">✓ Importar seleccionados</button>
+    </div>`;
+}
+
+async function iaImportar() {
+  if (!_iaResultado) return;
+  const { cursos, tareas } = _iaResultado;
+
+  const selCursos = [...document.querySelectorAll(".ia-check-curso:checked")]
+    .map(el => cursos[+el.dataset.idx]);
+  const selTareas = [...document.querySelectorAll(".ia-check-tarea:checked")]
+    .map(el => tareas[+el.dataset.idx]);
+
+  if (selCursos.length === 0 && selTareas.length === 0) {
+    showToast("No hay nada seleccionado para importar", "error");
+    return;
+  }
+
+  const body = document.getElementById("modalBody");
+  body.innerHTML = `
+    <div style="text-align:center;padding:50px 20px">
+      <div class="ia-spinner"></div>
+      <p style="margin-top:18px;font-weight:600">Importando datos...</p>
+    </div>`;
+
+  let okC = 0, okT = 0;
+
+  // 1. Crear cursos nuevos
+  const existingMap = {};
+  aulaCursos.forEach(c => { existingMap[c.nombre.toLowerCase()] = true; });
+
+  for (const c of selCursos) {
+    if (!existingMap[c.nombre.toLowerCase()]) {
+      try {
+        await apiFetch("/api/cursos", { method: "POST", body: JSON.stringify(c) });
+        okC++;
+      } catch (e) { console.warn("Curso no creado:", c.nombre, e.message); }
+    }
+  }
+
+  // Refrescar lista de cursos para que las tareas tengan referencia correcta
+  if (okC > 0) {
+    aulaCursos = await apiFetch("/api/cursos").catch(() => aulaCursos);
+  }
+
+  // 2. Crear tareas
+  for (const t of selTareas) {
+    try {
+      await apiFetch("/api/tareas", { method: "POST", body: JSON.stringify({
+        titulo:       t.titulo,
+        descripcion:  t.descripcion || null,
+        materia:      t.materia,
+        prioridad:    t.prioridad,
+        fecha_entrega: t.fecha_entrega || null,
+      })});
+      okT++;
+    } catch (e) { console.warn("Tarea no creada:", t.titulo, e.message); }
+  }
+
+  showToast(`✓ Importados: ${okC} curso${okC !== 1 ? "s" : ""}, ${okT} tarea${okT !== 1 ? "s" : ""}`, "success");
+  closeModal();
+  loadAula();
+}
+
 // ── REPORTES ──────────────────────────────────────────────────────────────────
 async function loadReportes() {
   try {

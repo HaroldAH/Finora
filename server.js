@@ -19,6 +19,7 @@ app.use("/api/presupuesto",require("./routes/presupuesto"));
 app.use("/api/tareas",     require("./routes/tareas"));
 app.use("/api/eventos",    require("./routes/eventos"));
 app.use("/api/cursos",     require("./routes/cursos"));
+app.use("/api/ia",         require("./routes/ia"));
 
 // Ruta principal → sirve el frontend
 app.get("/", (req, res) => {
