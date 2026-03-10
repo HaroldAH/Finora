@@ -1631,7 +1631,19 @@ let _iaResultado = null;
 function openIAModal() {
   _iaFiles    = [];
   _iaResultado = null;
+  const savedKey = localStorage.getItem("gemini_api_key") || "";
   openModal("🤖 Auto-detectar con Inteligencia Artificial", `
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:5px">🔑 Clave de API de Gemini (se guarda en tu navegador)</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="iaKeyInput" type="password" value="${escHtml(savedKey)}"
+          placeholder="AIzaSy..."
+          style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card-2);color:var(--text);font-size:13px"
+          oninput="_iaSaveKey(this.value)" />
+        <a href="https://aistudio.google.com/app/apikey" target="_blank"
+          style="font-size:11px;color:var(--orange);white-space:nowrap;text-decoration:none">Obtener gratis →</a>
+      </div>
+    </div>
     <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
       Sube fotos de tu Moodle, horario, silabo, WhatsApp con tareas, o cualquier documento académico.<br>
       La IA extrae los cursos y tareas automáticamente.
@@ -1666,6 +1678,11 @@ function openIAModal() {
       iaAgregarArchivos(e.dataTransfer.files);
     });
   }, 80);
+}
+
+function _iaSaveKey(val) {
+  if (val.trim()) localStorage.setItem("gemini_api_key", val.trim());
+  else localStorage.removeItem("gemini_api_key");
 }
 
 function iaAgregarArchivos(fileList) {
@@ -1720,10 +1737,11 @@ async function iaAnalizar() {
     </div>`;
 
   try {
+    const apiKey = (document.getElementById("iaKeyInput")?.value || localStorage.getItem("gemini_api_key") || "").trim();
     const fd = new FormData();
     _iaFiles.forEach(f => fd.append("archivos", f));
 
-    const res  = await fetch("/api/ia/analizar", { method: "POST", body: fd });
+    const res  = await fetch("/api/ia/analizar", { method: "POST", body: fd, headers: { "x-gemini-key": apiKey } });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Error desconocido");
 

@@ -53,11 +53,13 @@ Reglas estrictas:
 
 // ── POST /api/ia/analizar ─────────────────────────────────────────────────────
 router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
-  const GEMINI_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
-    const allKeys = Object.keys(process.env).filter(k => k.includes("GEMINI") || k.includes("gemini"));
+  // Leer la clave del header (enviada desde el frontend/localStorage del usuario)
+  const GEMINI_KEY = (req.headers["x-gemini-key"] || "").trim()
+                  || (process.env.GEMINI_API_KEY || "").trim();
+
+  if (!GEMINI_KEY) {
     return res.status(503).json({
-      error: `GEMINI_API_KEY no configurada. Keys con GEMINI en env: [${allKeys.join(",")}]. Total vars: ${Object.keys(process.env).length}`,
+      error: "GEMINI_API_KEY no configurada. Ingresá tu clave en el campo del modal de IA.",
     });
   }
 
