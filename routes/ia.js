@@ -55,8 +55,9 @@ Reglas estrictas:
 router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
+    const allKeys = Object.keys(process.env).filter(k => k.includes("GEMINI") || k.includes("gemini"));
     return res.status(503).json({
-      error: "GEMINI_API_KEY no configurada. Sigue los pasos para obtenerla gratis en aistudio.google.com/app/apikey",
+      error: `GEMINI_API_KEY no configurada. Keys con GEMINI en env: [${allKeys.join(",")}]. Total vars: ${Object.keys(process.env).length}`,
     });
   }
 
