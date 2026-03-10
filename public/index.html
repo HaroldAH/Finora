@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finora — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css?v=2" />
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">◈</span>
+        <span class="logo-text">Finora</span>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">&#9776;</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active" data-section="dashboard" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-item" data-section="ingresos" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <span>Ingresos</span>
+      </a>
+      <a class="nav-item" data-section="gastos" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+        <span>Gastos</span>
+      </a>
+      <a class="nav-item" data-section="presupuesto" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Presupuesto</span>
+      </a>
+      <a class="nav-item" data-section="tareas" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Tareas</span>
+      </a>
+      <a class="nav-item" data-section="calendario" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Calendario</span>
+      </a>
+      <a class="nav-item" data-section="aula" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>Aula Virtual</span>
+      </a>
+      <a class="nav-item" data-section="reportes" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Reportes</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar">H</div>
+        <div class="user-info">
+          <span class="user-name">Harold</span>
+          <span class="user-role">Admin</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main">
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+        <span class="page-date" id="pageDate"></span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" id="btnPrimaryAction">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span id="btnPrimaryText">Nuevo</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== SECTION: DASHBOARD ===== -->
+    <section class="section active" id="section-dashboard">
+
+      <!-- Capital Card -->
+      <div class="card capital-card" id="capitalCard">
+        <div class="capital-header">
+          <div>
+            <p class="capital-label">💳 Mi Cuenta — Capital Total</p>
+            <h1 class="capital-amount" id="capitalMonto">₡0</h1>
+          </div>
+          <button class="btn btn-ghost" onclick="openModalCapital()">✏ Editar capital</button>
+        </div>
+        <div class="capital-breakdown">
+          <div class="capital-item">
+            <span class="ci-label">� Comprometido en presupuestos</span>
+            <span class="ci-value ci-warning" id="capitalComprometido">₡0</span>
+          </div>
+          <div class="capital-divider"></div>
+          <div class="capital-item">
+            <span class="ci-label">✅ Disponible (si gastas todo lo planeado)</span>
+            <span class="ci-value" id="capitalDisponible">₡0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card stat-income">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="stat-body">
+            <p class="stat-label">Ingresos del Mes</p>
+            <h2 class="stat-value" id="statIngresos">$0.00</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-expense">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+          </div>
+          <div class="stat-body">
+            <p class="stat-label">Gastos del Mes</p>
+            <h2 class="stat-value" id="statGastos">$0.00</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-balance">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-body">
+            <p class="stat-label">Balance Neto</p>
+            <h2 class="stat-value" id="statBalance">$0.00</h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Budget Bar -->
+      <div class="card" id="dailyBudgetCard">
+        <div class="card-header">
+          <h3>Presupuesto de Hoy</h3>
+          <button class="btn btn-ghost btn-sm" id="btnSetLimite">Establecer límite</button>
+        </div>
+        <div class="card-body">
+          <div class="budget-bar-wrap">
+            <div class="budget-bar-track">
+              <div class="budget-bar-fill" id="budgetBarFill" style="width: 0%"></div>
+            </div>
+            <div class="budget-bar-labels">
+              <span id="budgetGastado">Gastado: $0.00</span>
+              <span id="budgetLimite">Límite: sin definir</span>
+            </div>
+          </div>
+          <p id="budgetStatus" class="budget-status"></p>
+        </div>
+      </div>
+
+      <!-- Two columns: recent transactions + pending tasks -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3>Últimas Transacciones</h3>
+            <a class="btn btn-ghost btn-sm" data-section="ingresos" href="#">Ver todas</a>
+          </div>
+          <div class="card-body">
+            <ul class="transaction-list" id="recentTransactions">
+              <li class="empty-state">Cargando...</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Tareas Pendientes</h3>
+            <a class="btn btn-ghost btn-sm" data-section="tareas" href="#">Ver todas</a>
+          </div>
+          <div class="card-body">
+            <ul class="task-list-mini" id="pendingTasksMini">
+              <li class="empty-state">Cargando...</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===== SECTION: INGRESOS ===== -->
+    <section class="section" id="section-ingresos">
+      <div class="card">
+        <div class="card-header">
+          <h3>Registro de Ingresos</h3>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table class="data-table" id="tableIngresos">
+              <thead>
+                <tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Monto</th><th>Acción</th></tr>
+              </thead>
+              <tbody id="tbodyIngresos"><tr><td colspan="5" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: GASTOS ===== -->
+    <section class="section" id="section-gastos">
+      <div class="card">
+        <div class="card-header">
+          <h3>Registro de Gastos</h3>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table class="data-table" id="tableGastos">
+              <thead>
+                <tr><th>Fecha</th><th>Categoría</th><th>Motivo / Descripción</th><th>Monto</th><th>Acción</th></tr>
+              </thead>
+              <tbody id="tbodyGastos"><tr><td colspan="5" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: PRESUPUESTO ===== -->
+    <section class="section" id="section-presupuesto">
+      <div class="stats-grid">
+        <div class="stat-card stat-income">
+          <div class="stat-body">
+            <p class="stat-label">Promedio Diario</p>
+            <h2 class="stat-value" id="statPromedio">$0.00</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-expense">
+          <div class="stat-body">
+            <p class="stat-label">Días Restantes</p>
+            <h2 class="stat-value" id="statDiasRestantes">0</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-balance">
+          <div class="stat-body">
+            <p class="stat-label">Gastado este Mes</p>
+            <h2 class="stat-value" id="statGastadoMes">$0.00</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-income">
+          <div class="stat-body">
+            <p class="stat-label">Ingresos este Mes</p>
+            <h2 class="stat-value" id="statIngresosMes">$0.00</h2>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Gastos por Categoría</h3>
+        </div>
+        <div class="card-body">
+          <div class="category-bars" id="categoryBars"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: TAREAS ===== -->
+    <section class="section" id="section-tareas">
+      <div class="task-columns">
+        <div class="task-col drop-zone" id="colAlta" data-prioridad="alta">
+          <h3 class="task-col-title priority-alta">🔴 Alta Prioridad</h3>
+          <div class="task-col-body" id="tasksAlta"></div>
+        </div>
+        <div class="task-col drop-zone" id="colMedia" data-prioridad="media">
+          <h3 class="task-col-title priority-media">🟡 Media Prioridad</h3>
+          <div class="task-col-body" id="tasksMedia"></div>
+        </div>
+        <div class="task-col drop-zone" id="colBaja" data-prioridad="baja">
+          <h3 class="task-col-title priority-baja">🟢 Baja Prioridad</h3>
+          <div class="task-col-body" id="tasksBaja"></div>
+        </div>
+      </div>
+
+      <!-- Completadas -->
+      <div class="card" id="completadasCard">
+        <div class="card-header" id="completadasToggle" style="cursor:pointer">
+          <h3>✅ Tareas Completadas <span class="completadas-count" id="completadasCount"></span></h3>
+          <span class="btn btn-ghost btn-sm" id="completadasChevron">▼</span>
+        </div>
+        <div class="card-body" id="completadasBody" style="display:none">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Tarea</th><th>Materia</th><th>Prioridad</th><th>Entrega</th><th>Acción</th></tr>
+              </thead>
+              <tbody id="tbodyCompletadas"><tr><td colspan="5" class="empty-state">Cargando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: CALENDARIO ===== -->
+    <section class="section" id="section-calendario">
+
+      <!-- Tabs -->
+      <div class="cal-tabs">
+        <button class="cal-tab active" id="tabFinanciero" onclick="switchCalTab('financiero')">💰 Presupuesto Financiero</button>
+        <button class="cal-tab" id="tabEventos" onclick="switchCalTab('eventos')">📅 Eventos</button>
+      </div>
+
+      <!-- ── TAB: FINANCIERO ── -->
+      <div id="calFinancieroPanel">
+        <div class="stats-grid" style="margin-bottom:0">
+          <div class="stat-card stat-income">
+            <div class="stat-body">
+              <p class="stat-label">Presupuestado en el Mes</p>
+              <h2 class="stat-value" id="finTotalPresupuesto">$0</h2>
+            </div>
+          </div>
+          <div class="stat-card stat-expense">
+            <div class="stat-body">
+              <p class="stat-label">Gastado Real</p>
+              <h2 class="stat-value" id="finTotalGastado">$0</h2>
+            </div>
+          </div>
+          <div class="stat-card stat-balance">
+            <div class="stat-body">
+              <p class="stat-label">Diferencia</p>
+              <h2 class="stat-value" id="finDiferencia">$0</h2>
+            </div>
+          </div>
+          <div class="stat-card stat-prediction">
+            <div class="stat-body">
+              <p class="stat-label">Sobra del Capital</p>
+              <h2 class="stat-value" id="finCapitalSobra">...</h2>
+              <p class="stat-label" id="finCapitalHint" style="margin-top:4px;font-size:10px"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="calendar-wrap">
+          <div class="calendar-header">
+            <button class="btn btn-ghost btn-sm" id="finCalPrev">&#8249;</button>
+            <h3 id="finCalTitle"></h3>
+            <button class="btn btn-ghost btn-sm" id="finCalNext">&#8250;</button>
+          </div>
+          <div class="calendar-grid" id="finCalendarGrid"></div>
+        </div>
+      </div>
+
+      <!-- ── TAB: EVENTOS ── -->
+      <div id="calEventosPanel" style="display:none">
+        <div class="calendar-wrap">
+          <div class="calendar-header">
+            <button class="btn btn-ghost btn-sm" id="calPrev">&#8249;</button>
+            <h3 id="calTitle"></h3>
+            <button class="btn btn-ghost btn-sm" id="calNext">&#8250;</button>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+
+        <div class="card" id="calEventList">
+          <div class="card-header"><h3>Eventos del Mes</h3></div>
+          <div class="card-body">
+            <ul class="transaction-list" id="eventosList"></ul>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===== SECTION: REPORTES ===== -->
+    <section class="section" id="section-reportes">
+      <div class="stats-grid">
+        <div class="stat-card stat-income">
+          <div class="stat-body">
+            <p class="stat-label">Ingresos del Mes</p>
+            <h2 class="stat-value" id="repIngresos">$0</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-expense">
+          <div class="stat-body">
+            <p class="stat-label">Gastos del Mes</p>
+            <h2 class="stat-value" id="repGastos">$0</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-balance">
+          <div class="stat-body">
+            <p class="stat-label">Balance</p>
+            <h2 class="stat-value" id="repBalance">$0</h2>
+          </div>
+        </div>
+        <div class="stat-card stat-prediction">
+          <div class="stat-body">
+            <p class="stat-label">Tasa de Ahorro</p>
+            <h2 class="stat-value" id="repAhorro">0%</h2>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h3>Gastos por Categoría</h3></div>
+          <div class="card-body">
+            <div class="category-bars" id="repCategoryBars"><p class="empty-state">Cargando...</p></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Mayores Gastos del Mes</h3></div>
+          <div class="card-body">
+            <ul class="transaction-list" id="repTopGastos"><li class="empty-state">Cargando...</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Resumen del Período</h3></div>
+        <div class="card-body" id="repDistribucion"></div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION: AULA VIRTUAL ===== -->
+    <section class="section" id="section-aula">
+      <div id="aulaContainer">
+        <div class="aula-empty">
+          <div style="font-size:48px;margin-bottom:14px">📚</div>
+          <p style="font-size:16px;font-weight:600">Sin cursos registrados</p>
+          <p style="font-size:13px;color:var(--text-muted)">Haz clic en “Nuevo Curso” para comenzar</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== MODAL ===== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Nuevo Registro</h3>
+        <button class="modal-close" id="modalClose">&#10005;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/app.js?v=4"></script>
+</body>
+</html>
