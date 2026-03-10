@@ -1,20 +1,32 @@
-const express = require("express");
-const router  = express.Router();
-const multer  = require("multer");
-const Groq    = require("groq-sdk");
+const express  = require("express");
+const router   = express.Router();
+const multer   = require("multer");
+const Groq     = require("groq-sdk");
+
+let pdfParse, mammoth;
+try { pdfParse = require("pdf-parse"); } catch (e) {}
+try { mammoth  = require("mammoth");   } catch (e) {}
+
+const SUPPORTED_MIME = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) cb(null, true);
-    else cb(new Error("Solo se aceptan imagenes"), false);
+    if (file.mimetype.startsWith("image/") || SUPPORTED_MIME.has(file.mimetype))
+      cb(null, true);
+    else
+      cb(new Error("Solo se aceptan imagenes (JPG, PNG, WEBP), PDF o Word (.docx)"), false);
   },
 });
 
 function buildPrompt() {
   const hoy = new Date().toISOString().substring(0, 10);
-  return `Eres un asistente que extrae informacion academica universitaria de imagenes.
+  return `Eres un asistente que extrae informacion academica universitaria de imagenes y documentos.
 Hoy es ${hoy}.
 Responde UNICAMENTE con JSON valido sin markdown:
 {"cursos":[{"nombre":"...","descripcion":"...","color":"#HEX"}],"tareas":[{"titulo":"...","materia":"...","fecha_entrega":"YYYY-MM-DD o null","prioridad":"alta|media|baja","descripcion":"..."}]}
@@ -30,30 +42,53 @@ router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
     return res.status(503).json({ error: "Ingresa tu clave de Groq en el campo del modal (console.groq.com/keys)." });
   }
   if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ error: "No se recibieron imagenes." });
+    return res.status(400).json({ error: "No se recibieron archivos." });
   }
 
   try {
-    const groq = new Groq({ apiKey: GROQ_KEY });
+    const imageFiles = req.files.filter(f => f.mimetype.startsWith("image/"));
+    const docFiles   = req.files.filter(f => SUPPORTED_MIME.has(f.mimetype));
+
+    // Extract text from documents
+    let docText = "";
+    for (const f of docFiles) {
+      try {
+        if (f.mimetype === "application/pdf" && pdfParse) {
+          const pdfData = await pdfParse(f.buffer);
+          docText += `\n\n[PDF: ${f.originalname}]\n${pdfData.text.substring(0, 8000)}`;
+        } else if (SUPPORTED_MIME.has(f.mimetype) && f.mimetype !== "application/pdf" && mammoth) {
+          const result = await mammoth.extractRawText({ buffer: f.buffer });
+          docText += `\n\n[Word: ${f.originalname}]\n${result.value.substring(0, 8000)}`;
+        }
+      } catch (docErr) {
+        console.warn("[IA] Error extrayendo doc:", f.originalname, docErr.message);
+      }
+    }
+
+    const groq  = new Groq({ apiKey: GROQ_KEY });
+    const model = imageFiles.length > 0
+      ? "meta-llama/llama-4-scout-17b-16e-instruct"
+      : "llama-3.3-70b-versatile";
+
+    const text    = buildPrompt() + (docText ? "\n\nContenido de documentos:\n" + docText : "");
+    const content = [
+      { type: "text", text },
+      ...imageFiles.map(f => ({
+        type: "image_url",
+        image_url: { url: `data:${f.mimetype};base64,${f.buffer.toString("base64")}` },
+      })),
+    ];
+
     const response = await groq.chat.completions.create({
-      model: "meta-llama/llama-4-scout-17b-16e-instruct",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: buildPrompt() },
-          ...req.files.map(f => ({
-            type: "image_url",
-            image_url: { url: `data:${f.mimetype};base64,${f.buffer.toString("base64")}` },
-          })),
-        ],
-      }],
+      model,
+      messages: [{ role: "user", content }],
       max_tokens: 2000,
     });
 
     const rawText = response.choices[0].message.content.trim();
     const jsonStr = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-    const raw = JSON.parse(jsonStr);
-    const COLORS = ["#f97316","#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#06b6d4","#ec4899"];
+    const raw     = JSON.parse(jsonStr);
+    const COLORS  = ["#f97316","#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#06b6d4","#ec4899"];
 
     const cursos = (Array.isArray(raw.cursos) ? raw.cursos : [])
       .map((c, i) => ({

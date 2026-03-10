@@ -1333,14 +1333,20 @@ async function loadAula() {
                         <div class="eval-row">
                           <div class="eval-row-info">
                             <span class="eval-nombre">${escHtml(ev.nombre)}</span>
-                            <span class="eval-peso">${parseFloat(ev.peso)}% del total</span>
+                            <div class="eval-peso-row">
+                              <input type="number" class="eval-inline-input" value="${parseFloat(ev.peso)}"
+                                min="0" max="100" step="0.5"
+                                onchange="savePesoInline(${ev.id}, this.value)"
+                                title="Editar porcentaje" />
+                              <span class="eval-peso-label">% del total</span>
+                            </div>
                           </div>
                           <div class="eval-row-score">
-                            ${ev.nota != null
-                              ? `<span class="eval-nota-badge" style="background:${color}22;color:${color};border-color:${color}44">${parseFloat(ev.nota)}</span>
-                                 <span class="eval-pts">${pts}pts</span>`
-                              : `<button class="btn btn-ghost btn-sm" onclick="openSetNota(${ev.id},${cid},'${cnameEsc}','${escHtml(ev.nombre).replace(/'/g,"&#39;")}')">Registrar nota</button>`
-                            }
+                            <input type="number" class="eval-nota-input" value="${ev.nota != null ? parseFloat(ev.nota) : ''}"
+                              min="0" max="100" step="0.1" placeholder="—"
+                              onchange="saveNotaInline(${ev.id}, this.value)"
+                              title="Nota (0–100)" />
+                            ${ev.nota != null ? `<span class="eval-pts">${pts}pts</span>` : ''}
                           </div>
                           <button class="eval-del-btn" onclick="deleteEvaluacion(${ev.id},${cid})" title="Eliminar">✕</button>
                         </div>`;
@@ -1453,15 +1459,16 @@ async function submitEditCurso(id) {
   }
 }
 
-async function deleteCurso(id) {
-  if (!confirm("¿Eliminar este curso? Las evaluaciones se borrarán. Las tareas asociadas NO.")) return;
-  try {
-    await apiFetch(`/api/cursos/${id}`, { method: "DELETE" });
-    showToast("Curso eliminado", "success");
-    loadAula();
-  } catch (e) {
-    showToast(e.message, "error");
-  }
+function deleteCurso(id) {
+  openConfirm("¿Eliminar este curso? Las evaluaciones se borrarán. Las tareas asociadas NO se eliminarán.", async () => {
+    try {
+      await apiFetch(`/api/cursos/${id}`, { method: "DELETE" });
+      showToast("Curso eliminado", "success");
+      loadAula();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  });
 }
 
 function openModalTareaAula(materia, color, fechaPreset) {
@@ -1613,15 +1620,16 @@ async function submitSetNota(evalId, cursoId) {
   }
 }
 
-async function deleteEvaluacion(evalId, cursoId) {
-  if (!confirm("¿Eliminar esta evaluación?")) return;
-  try {
-    await apiFetch(`/api/cursos/evaluaciones/${evalId}`, { method: "DELETE" });
-    showToast("Evaluación eliminada", "success");
-    loadAula();
-  } catch (e) {
-    showToast(e.message, "error");
-  }
+function deleteEvaluacion(evalId, cursoId) {
+  openConfirm("¿Eliminar esta evaluación?", async () => {
+    try {
+      await apiFetch(`/api/cursos/evaluaciones/${evalId}`, { method: "DELETE" });
+      showToast("Evaluación eliminada", "success");
+      loadAula();
+    } catch (e) {
+      showToast(e.message, "error");
+    }
+  });
 }
 
 // ── IA AUTO-DETECT ────────────────────────────────────────────────────────────
@@ -1649,10 +1657,10 @@ function openIAModal() {
       La IA extrae los cursos y tareas automáticamente.
     </p>
     <div class="ia-drop-zone" id="iaDropZone" onclick="document.getElementById('iaFileInput').click()">
-      <div style="font-size:42px;margin-bottom:10px">📷</div>
-      <p style="font-weight:600;font-size:15px;color:var(--text)">Arrastra imágenes aquí</p>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:5px">o toca para seleccionar&nbsp;·&nbsp;Hasta 5 imágenes&nbsp;·&nbsp;JPG PNG WEBP</p>
-      <input type="file" id="iaFileInput" accept="image/*" multiple style="display:none" onchange="iaAgregarArchivos(this.files)" />
+      <div style="font-size:42px;margin-bottom:10px">�</div>
+      <p style="font-weight:600;font-size:15px;color:var(--text)">Arrastra archivos aquí</p>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:5px">o toca para seleccionar&nbsp;·&nbsp;Hasta 5 archivos&nbsp;·&nbsp;JPG PNG WEBP PDF DOCX</p>
+      <input type="file" id="iaFileInput" accept="image/*,.pdf,.doc,.docx" multiple style="display:none" onchange="iaAgregarArchivos(this.files)" />
     </div>
     <div id="iaThumbs" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"></div>
     <div id="iaMsg" style="margin-top:6px;font-size:13px;color:var(--text-muted)"></div>
@@ -1686,9 +1694,14 @@ function _iaSaveKey(val) {
 }
 
 function iaAgregarArchivos(fileList) {
+  const allowed = f =>
+    f.type.startsWith("image/") ||
+    f.type === "application/pdf" ||
+    f.type === "application/msword" ||
+    f.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
   for (const f of fileList) {
-    if (_iaFiles.length >= 5) break;
-    if (!f.type.startsWith("image/")) continue;
+    if (_iaFiles.length >= 5) { showToast("Máximo 5 archivos", "error"); break; }
+    if (!allowed(f)) { showToast("Solo se aceptan imágenes, PDF o Word", "error"); continue; }
     _iaFiles.push(f);
   }
   _iaRenderThumbs();
@@ -1706,9 +1719,16 @@ function _iaRenderThumbs() {
   if (!thumbs) return;
 
   thumbs.innerHTML = _iaFiles.map((f, i) => {
-    const url = URL.createObjectURL(f);
+    const isImg  = f.type.startsWith("image/");
+    const icon   = f.type === "application/pdf" ? "📄" : "📝";
+    const preview = isImg
+      ? `<img src="${URL.createObjectURL(f)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--border)" />`
+      : `<div style="width:72px;height:72px;border-radius:8px;border:2px solid var(--border);background:var(--bg-card-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;text-align:center">
+           <span style="font-size:26px">${icon}</span>
+           <span style="font-size:9px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:62px">${escHtml(f.name)}</span>
+         </div>`;
     return `<div style="position:relative">
-      <img src="${url}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--border)" />
+      ${preview}
       <button onclick="iaRemoverArchivo(${i})"
         style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
                background:var(--red);color:#fff;font-size:10px;display:flex;align-items:center;
@@ -1718,7 +1738,7 @@ function _iaRenderThumbs() {
 
   if (_iaFiles.length > 0) {
     btn.disabled = false;
-    msg.textContent = `${_iaFiles.length} imagen${_iaFiles.length !== 1 ? "es" : ""} lista${_iaFiles.length !== 1 ? "s" : ""} para analizar`;
+    msg.textContent = `${_iaFiles.length} archivo${_iaFiles.length !== 1 ? "s" : ""} listo${_iaFiles.length !== 1 ? "s" : ""} para analizar`;
   } else {
     btn.disabled = true;
     msg.textContent = "";
@@ -2015,6 +2035,50 @@ async function loadReportes() {
   } catch (e) {
     showToast("Error cargando reportes", "error");
     console.error(e);
+  }
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function openConfirm(msg, onConfirm) {
+  openModal("⚠️ Confirmar acción", `
+    <p style="text-align:center;font-size:15px;line-height:1.5;margin:10px 0 24px">${escHtml(msg)}</p>
+    <div class="form-actions" style="justify-content:center">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Eliminar</button>
+    </div>`);
+  setTimeout(() => {
+    const btn = document.getElementById("confirmOkBtn");
+    if (btn) btn.onclick = () => { closeModal(); onConfirm(); };
+  }, 50);
+}
+
+async function saveNotaInline(evalId, val) {
+  const nota = val === "" ? null : parseFloat(val);
+  if (val !== "" && isNaN(nota)) return;
+  try {
+    await apiFetch(`/api/cursos/evaluaciones/${evalId}`, {
+      method: "PUT",
+      body: JSON.stringify({ nota }),
+    });
+    showToast("Nota guardada ✓", "success");
+    loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+async function savePesoInline(evalId, val) {
+  const peso = parseFloat(val);
+  if (isNaN(peso) || peso < 0 || peso > 100) return;
+  try {
+    await apiFetch(`/api/cursos/evaluaciones/${evalId}`, {
+      method: "PUT",
+      body: JSON.stringify({ peso }),
+    });
+    showToast("Peso actualizado ✓", "success");
+    loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
   }
 }
 
