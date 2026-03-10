@@ -53,4 +53,80 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// ── EVALUACIONES ────────────────────────────────────────────────────────────
+
+// GET todas las evaluaciones de todos los cursos (para cargar el aula de un solo hit)
+router.get("/all-evaluaciones", async (req, res) => {
+  try {
+    const { rows } = await db.query("SELECT * FROM evaluaciones ORDER BY curso_id, id");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET evaluaciones de un curso específico
+router.get("/:id/evaluaciones", async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      "SELECT * FROM evaluaciones WHERE curso_id=$1 ORDER BY id",
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST nueva evaluación para un curso
+router.post("/:id/evaluaciones", async (req, res) => {
+  const { nombre, peso } = req.body;
+  if (!nombre || peso == null) return res.status(400).json({ error: "nombre y peso son requeridos" });
+  try {
+    const { rows } = await db.query(
+      "INSERT INTO evaluaciones (curso_id, nombre, peso) VALUES ($1, $2, $3) RETURNING *",
+      [req.params.id, nombre.trim(), parseFloat(peso)]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT actualizar evaluación (puede actualizar nombre, peso o nota)
+router.put("/evaluaciones/:evalId", async (req, res) => {
+  const { nombre, peso, nota } = req.body;
+  try {
+    const { rows } = await db.query(
+      `UPDATE evaluaciones
+         SET nombre = COALESCE($1, nombre),
+             peso   = COALESCE($2, peso),
+             nota   = $3
+       WHERE id = $4
+       RETURNING *`,
+      [
+        nombre || null,
+        peso != null ? parseFloat(peso) : null,
+        nota != null ? parseFloat(nota) : null,
+        req.params.evalId,
+      ]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: "No encontrado" });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE evaluación
+router.delete("/evaluaciones/:evalId", async (req, res) => {
+  try {
+    const { rowCount } = await db.query("DELETE FROM evaluaciones WHERE id=$1", [req.params.evalId]);
+    if (rowCount === 0) return res.status(404).json({ error: "No encontrado" });
+    res.json({ message: "Eliminado" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

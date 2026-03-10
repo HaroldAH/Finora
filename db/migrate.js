@@ -51,6 +51,19 @@ async function migrate() {
     `);
     console.log("✅ Tabla 'cursos' creada o ya existente");
 
+    // 5. Tabla evaluaciones (calificaciones por curso)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS evaluaciones (
+        id         SERIAL PRIMARY KEY,
+        curso_id   INT NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+        nombre     VARCHAR(200) NOT NULL,
+        peso       NUMERIC(5,2) NOT NULL DEFAULT 0,
+        nota       NUMERIC(5,2),
+        creado_en  TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    console.log("✅ Tabla 'evaluaciones' creada o ya existente");
+
     console.log("✅ Migraciones completadas correctamente");
   } catch (err) {
     console.error("❌ Error en migración:", err.message);

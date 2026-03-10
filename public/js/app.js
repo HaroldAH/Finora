@@ -887,65 +887,72 @@ async function renderCalendar() {
   document.getElementById("calTitle").textContent = title.charAt(0).toUpperCase() + title.slice(1);
 
   try {
-    calEvents = await apiFetch(`/api/eventos/mes?year=${calYear}&month=${calMonth + 1}`);
-  } catch {
-    calEvents = [];
-  }
+    const [eventsData, tareasData] = await Promise.all([
+      apiFetch(`/api/eventos/mes?year=${calYear}&month=${calMonth + 1}`),
+      apiFetch("/api/tareas"),
+    ]);
+    calEvents = eventsData;
 
-  const grid = document.getElementById("calendarGrid");
-  grid.innerHTML = "";
+    const grid = document.getElementById("calendarGrid");
+    grid.innerHTML = "";
 
-  const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-  days.forEach(d => {
-    const el = document.createElement("div");
-    el.className = "cal-day-name";
-    el.textContent = d;
-    grid.appendChild(el);
-  });
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    days.forEach(d => {
+      const el = document.createElement("div");
+      el.className = "cal-day-name";
+      el.textContent = d;
+      grid.appendChild(el);
+    });
 
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-  const today = new Date();
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const today = new Date();
 
-  for (let i = 0; i < firstDay; i++) {
-    const cell = document.createElement("div");
-    cell.className = "cal-day other-month";
-    const prevDays = new Date(calYear, calMonth, 0).getDate();
-    cell.innerHTML = `<div class="cal-day-num">${prevDays - firstDay + i + 1}</div>`;
-    grid.appendChild(cell);
-  }
+    for (let i = 0; i < firstDay; i++) {
+      const cell = document.createElement("div");
+      cell.className = "cal-day other-month";
+      const prevDays = new Date(calYear, calMonth, 0).getDate();
+      cell.innerHTML = `<div class="cal-day-num">${prevDays - firstDay + i + 1}</div>`;
+      grid.appendChild(cell);
+    }
 
-  for (let d = 1; d <= daysInMonth; d++) {
-    const cell = document.createElement("div");
-    const isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
-    cell.className = `cal-day${isToday ? " today" : ""}`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cell = document.createElement("div");
+      const isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
+      cell.className = `cal-day${isToday ? " today" : ""}`;
 
-    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    const dayEvents = calEvents.filter(e => e.fecha_inicio.startsWith(dateStr));
+      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      const dayEvents = calEvents.filter(e => e.fecha_inicio.startsWith(dateStr));
+      const dayTareas = tareasData.filter(t => t.fecha_entrega && t.fecha_entrega.startsWith(dateStr) && !t.completada);
 
-    cell.innerHTML = `<div class="cal-day-num">${d}</div>` +
-      dayEvents.map(e => `<div class="cal-event-dot" style="background:${e.color || "#f97316"}"></div>`).join("");
+      cell.innerHTML = `<div class="cal-day-num">${d}</div>` +
+        dayEvents.map(e => `<div class="cal-event-dot" style="background:${e.color || "#f97316"}" title="${escHtml(e.titulo)}"></div>`).join("") +
+        (dayTareas.length > 0 ? `<div class="cal-task-dot" title="${dayTareas.length} tarea${dayTareas.length !== 1 ? "s" : ""}">📋</div>` : "");
 
-    cell.addEventListener("click", () => openModalEventoFecha(dateStr));
-    grid.appendChild(cell);
-  }
+      cell.addEventListener("click", () => openDayModal(dateStr, dayEvents, dayTareas));
+      grid.appendChild(cell);
+    }
 
-  // Events list
-  const list = document.getElementById("eventosList");
-  if (calEvents.length === 0) {
-    list.innerHTML = `<li class="empty-state">Sin eventos este mes</li>`;
-  } else {
-    list.innerHTML = calEvents.map(e => `
-      <li class="transaction-item">
-        <div class="transaction-left">
-          <div class="transaction-dot" style="background:${e.color || "var(--orange)"}"></div>
-          <div class="transaction-info">
-            <span class="transaction-desc">${escHtml(e.titulo)}</span>
-            <span class="transaction-meta">${escHtml(e.tipo)} · ${new Date(e.fecha_inicio).toLocaleDateString("es-ES")}</span>
+    // Events list
+    const list = document.getElementById("eventosList");
+    if (calEvents.length === 0) {
+      list.innerHTML = `<li class="empty-state">Sin eventos este mes</li>`;
+    } else {
+      list.innerHTML = calEvents.map(e => `
+        <li class="transaction-item">
+          <div class="transaction-left">
+            <div class="transaction-dot" style="background:${e.color || "var(--orange)"}"></div>
+            <div class="transaction-info">
+              <span class="transaction-desc">${escHtml(e.titulo)}</span>
+              <span class="transaction-meta">${escHtml(e.tipo)} · ${new Date(e.fecha_inicio).toLocaleDateString("es-ES")}</span>
+            </div>
           </div>
-        </div>
-        <button class="btn btn-danger btn-sm" onclick="deleteEvento('${e.id}')">✕</button>
-      </li>`).join("");
+          <button class="btn btn-danger btn-sm" onclick="deleteEvento('${e.id}')">✕</button>
+        </li>`).join("");
+    }
+  } catch (err) {
+    calEvents = [];
+    console.error("Error renderCalendar:", err);
   }
 }
 
@@ -957,6 +964,133 @@ document.getElementById("calNext").addEventListener("click", () => {
 });
 
 function openModalEvento() { openModalEventoFecha(todayStr()); }
+
+// ── Calendar Day Modal ────────────────────────────────────────────────────────
+function openDayModal(dateStr, dayEvents, dayTareas) {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const label = new Date(year, month - 1, day).toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const labelCap = label.charAt(0).toUpperCase() + label.slice(1);
+
+  const eventsHtml = dayEvents.length === 0
+    ? `<p class="aula-no-tasks">Sin eventos</p>`
+    : dayEvents.map(e => `
+        <div class="day-event-item">
+          <span class="day-ev-dot" style="background:${e.color || "var(--orange)"}"></span>
+          <span class="day-ev-title">${escHtml(e.titulo)}</span>
+          <span class="day-ev-type">${escHtml(e.tipo)}</span>
+        </div>`).join("");
+
+  const tareasHtml = dayTareas.length === 0
+    ? `<p class="aula-no-tasks">Sin tareas para este día 🎉</p>`
+    : dayTareas.map(t => {
+        const cursoColor = (aulaCursos.find(c => c.nombre === t.materia) || {}).color || "var(--orange)";
+        return `
+          <div class="day-task-item">
+            <span class="day-ev-dot" style="background:${cursoColor}"></span>
+            <div class="day-task-info">
+              <span class="day-task-title">${escHtml(t.titulo)}</span>
+              <span class="day-task-meta">${escHtml(t.materia || "—")} · <span class="task-priority-badge badge-${t.prioridad}">${t.prioridad}</span></span>
+            </div>
+            <button class="btn-complete" onclick="toggleTarea('${t.id}'); closeModal(); showToast('Tarea completada ✓','success')" title="Marcar completada">✓</button>
+          </div>`;
+      }).join("");
+
+  const cursoOptions = aulaCursos.length > 0
+    ? aulaCursos.map(c => `<option value="${escHtml(c.nombre)}" data-color="${c.color || "#f97316"}">${escHtml(c.nombre)}</option>`).join("")
+    : `<option value="">Sin cursos registrados</option>`;
+
+  openModal(`📅 ${labelCap}`, `
+    <div class="day-modal-section">
+      <div class="day-modal-section-title">📋 Tareas pendientes</div>
+      ${tareasHtml}
+    </div>
+    <div class="day-modal-section">
+      <div class="day-modal-section-title">📌 Eventos</div>
+      ${eventsHtml}
+    </div>
+    <div class="day-modal-divider"></div>
+    <div class="form-row" style="gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="openTareaDesdeCalendario('${dateStr}')">+ Nueva Tarea</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="openModalEventoFecha('${dateStr}')">+ Nuevo Evento</button>
+    </div>`);
+}
+
+function openTareaDesdeCalendario(dateStr) {
+  const cursoOptions = aulaCursos.length > 0
+    ? aulaCursos.map(c => `<option value="${escHtml(c.nombre)}" data-color="${c.color || "#f97316"}">${escHtml(c.nombre)}</option>`).join("")
+    : `<option value="">Sin cursos — crea uno primero</option>`;
+
+  openModal("📝 Nueva Tarea desde Calendario", `
+    <div class="form-group">
+      <label class="form-label">Curso</label>
+      <select class="form-input" id="calTareaCurso" ${aulaCursos.length === 0 ? "disabled" : ""}>
+        ${cursoOptions}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Título</label>
+      <input class="form-input" id="calTareaTitulo" placeholder="Ej: Tarea 3, Ensayo, Quiz 1..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+      <input class="form-input" id="calTareaDesc" placeholder="Instrucciones, notas..." />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Prioridad</label>
+        <select class="form-input" id="calTareaPrioridad">
+          <option value="alta">🔴 Alta</option>
+          <option value="media" selected>🟡 Media</option>
+          <option value="baja">🟢 Baja</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha de entrega</label>
+        <input class="form-input" id="calTareaFecha" type="date" value="${dateStr}" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+        <input type="checkbox" id="calTareaAddCal" checked style="accent-color:var(--orange);width:16px;height:16px" />
+        Agregar evento al calendario
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitTareaDesdeCalendario()">Guardar Tarea</button>
+    </div>`);
+}
+
+async function submitTareaDesdeCalendario() {
+  const titulo = document.getElementById("calTareaTitulo").value.trim();
+  if (!titulo) { showToast("Ingresa el título de la tarea", "error"); return; }
+  const sel = document.getElementById("calTareaCurso");
+  const materia = sel.value;
+  const cursoColor = (aulaCursos.find(c => c.nombre === materia) || {}).color || "#f97316";
+  const fecha = document.getElementById("calTareaFecha").value;
+  try {
+    await apiFetch("/api/tareas", { method: "POST", body: JSON.stringify({
+      titulo,
+      descripcion: document.getElementById("calTareaDesc").value.trim() || null,
+      materia,
+      prioridad: document.getElementById("calTareaPrioridad").value,
+      fecha_entrega: fecha || null,
+    })});
+    if (document.getElementById("calTareaAddCal").checked && fecha) {
+      await apiFetch("/api/eventos", { method: "POST", body: JSON.stringify({
+        titulo: `📝 ${titulo} — ${materia}`,
+        tipo: "academico",
+        color: cursoColor,
+        fecha_inicio: `${fecha}T08:00`,
+        descripcion: `Entrega: ${materia}`,
+      })}).catch(() => {});
+    }
+    showToast("Tarea creada ✓", "success");
+    closeModal(); renderCalendar();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
 
 function openModalEventoFecha(fecha) {
   openModal("Nuevo Evento", `
@@ -1067,9 +1201,10 @@ let aulaCursos = [];
 
 async function loadAula() {
   try {
-    const [cursos, tareas] = await Promise.all([
+    const [cursos, tareas, evaluaciones] = await Promise.all([
       apiFetch("/api/cursos"),
       apiFetch("/api/tareas"),
+      apiFetch("/api/cursos/all-evaluaciones"),
     ]);
     aulaCursos = cursos;
     const container = document.getElementById("aulaContainer");
@@ -1084,43 +1219,116 @@ async function loadAula() {
       return;
     }
 
+    // Group evaluaciones by curso_id
+    const evalsByCurso = {};
+    evaluaciones.forEach(e => {
+      if (!evalsByCurso[e.curso_id]) evalsByCurso[e.curso_id] = [];
+      evalsByCurso[e.curso_id].push(e);
+    });
+
     container.innerHTML = cursos.map(c => {
-      const cursoTareas  = tareas.filter(t => t.materia === c.nombre && !t.completada);
-      const completadas  = tareas.filter(t => t.materia === c.nombre && t.completada);
+      const color       = c.color || "#f97316";
+      const initial     = c.nombre.charAt(0).toUpperCase();
+      const pending     = tareas.filter(t => t.materia === c.nombre && !t.completada);
+      const done        = tareas.filter(t => t.materia === c.nombre && t.completada);
+      const evals       = evalsByCurso[c.id] || [];
+
+      // Accumulated score calculation
+      const acum = evals.reduce((sum, ev) => {
+        return ev.nota != null ? sum + (parseFloat(ev.nota) * parseFloat(ev.peso) / 100) : sum;
+      }, 0);
+      const totalPeso = evals.reduce((sum, ev) => sum + parseFloat(ev.peso), 0);
+      const pctBar    = Math.min(100, totalPeso > 0 ? (acum / totalPeso) * 100 : 0);
+
+      // Safe id for use in onclick attrs — cursos use integer IDs so safe
+      const cid = c.id;
+      const cnameEsc = escHtml(c.nombre).replace(/'/g, "&#39;");
+      const colorSafe = color.replace(/'/g, "");
+
       return `
-        <div class="aula-card" style="border-left-color:${c.color || "var(--orange)"}">
-          <div class="aula-card-header">
-            <div class="aula-title-row">
-              <div class="aula-dot" style="background:${c.color || "var(--orange)"}"></div>
-              <h3 class="aula-card-name">${escHtml(c.nombre)}</h3>
-              ${cursoTareas.length > 0
-                ? `<span class="aula-badge">${cursoTareas.length} pendiente${cursoTareas.length !== 1 ? "s" : ""}</span>`
-                : ""}
-              ${completadas.length > 0
-                ? `<span class="aula-badge-done">${completadas.length} lista${completadas.length !== 1 ? "s" : ""}</span>`
-                : ""}
+        <div class="curso-card">
+          <div class="curso-card-header" style="background:linear-gradient(135deg,${color}cc 0%,${color}66 100%)">
+            <div class="curso-header-content">
+              <span class="curso-header-initial" style="color:${color}">${initial}</span>
+              <div>
+                <h3 class="curso-header-name">${escHtml(c.nombre)}</h3>
+                ${c.descripcion ? `<p class="curso-header-desc">${escHtml(c.descripcion)}</p>` : ""}
+              </div>
             </div>
-            <div style="display:flex;gap:6px">
-              <button class="btn btn-ghost btn-sm" onclick="openModalTareaAula('${escHtml(c.nombre).replace(/'/g,"&#39;")}', '${c.color || "#3b82f6"}')">+ Tarea</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteCurso('${c.id}')">Eliminar</button>
+            <div class="curso-header-badges">
+              ${pending.length > 0 ? `<span class="aula-badge">${pending.length} tarea${pending.length !== 1 ? "s" : ""}</span>` : ""}
+              ${evals.length > 0 ? `<span class="eval-acum-badge" style="background:${color}33;color:${color};border-color:${color}55">${acum.toFixed(1)}pts</span>` : ""}
             </div>
           </div>
-          ${c.descripcion ? `<p class="aula-desc">${escHtml(c.descripcion)}</p>` : ""}
-          <div class="aula-tasks">
-            ${cursoTareas.length === 0 && completadas.length === 0
-              ? `<p class="aula-no-tasks">Sin tareas aún 🎉</p>`
-              : cursoTareas.map(t => `
-                  <div class="aula-task-item">
-                    <span class="task-priority-badge badge-${t.prioridad}">${t.prioridad}</span>
-                    <div class="aula-task-info">
-                      <span class="aula-task-title">${escHtml(t.titulo)}</span>
-                      ${t.descripcion ? `<span class="aula-task-sub">${escHtml(t.descripcion)}</span>` : ""}
-                    </div>
-                    ${t.fecha_entrega ? `<span class="aula-task-date">📅 ${fmtDate(t.fecha_entrega)}</span>` : ""}
-                    <button class="btn-complete" onclick="toggleTarea('${t.id}'); setTimeout(loadAula, 400)">✓</button>
-                  </div>`).join("")
-            }
-            ${completadas.length > 0 ? `<div class="aula-completadas-row">✅ ${completadas.length} tarea${completadas.length !== 1 ? "s" : ""} completada${completadas.length !== 1 ? "s" : ""}</div>` : ""}
+
+          <div class="curso-card-body">
+
+            <!-- TAREAS -->
+            <div class="curso-section">
+              <div class="curso-section-header">
+                <span class="curso-section-title">📋 Tareas</span>
+                <button class="btn btn-ghost btn-sm" onclick="openModalTareaAula('${cnameEsc}','${colorSafe}')">+ Tarea</button>
+              </div>
+              <div class="aula-tasks">
+                ${pending.length === 0 && done.length === 0
+                  ? `<p class="aula-no-tasks">Sin tareas aún 🎉</p>`
+                  : pending.map(t => `
+                      <div class="aula-task-item">
+                        <span class="task-priority-badge badge-${t.prioridad}">${t.prioridad}</span>
+                        <div class="aula-task-info">
+                          <span class="aula-task-title">${escHtml(t.titulo)}</span>
+                          ${t.descripcion ? `<span class="aula-task-sub">${escHtml(t.descripcion)}</span>` : ""}
+                        </div>
+                        ${t.fecha_entrega ? `<span class="aula-task-date">📅 ${fmtDate(t.fecha_entrega)}</span>` : ""}
+                        <button class="btn-complete" onclick="toggleTarea('${t.id}'); setTimeout(loadAula, 400)" title="Marcar completada">✓</button>
+                      </div>`).join("")
+                }
+                ${done.length > 0 ? `<div class="aula-completadas-row">✅ ${done.length} completada${done.length !== 1 ? "s" : ""}</div>` : ""}
+              </div>
+            </div>
+
+            <!-- CALIFICACIONES -->
+            <div class="curso-section">
+              <div class="curso-section-header">
+                <span class="curso-section-title">📊 Calificaciones</span>
+                <button class="btn btn-ghost btn-sm" onclick="openModalEvaluacion(${cid},'${cnameEsc}')">+ Evaluación</button>
+              </div>
+              ${evals.length > 0 ? `
+              <div class="eval-progress-wrap">
+                <div class="eval-progress-track">
+                  <div class="eval-progress-fill" style="width:${pctBar.toFixed(1)}%;background:${color}"></div>
+                </div>
+                <span class="eval-progress-label">Acumulado: <strong>${acum.toFixed(1)}</strong> / ${totalPeso.toFixed(0)} pts posibles</span>
+              </div>` : ""}
+              <div class="eval-list">
+                ${evals.length === 0
+                  ? `<p class="aula-no-tasks">Sin evaluaciones registradas</p>`
+                  : evals.map(ev => {
+                      const pts = ev.nota != null ? (parseFloat(ev.nota) * parseFloat(ev.peso) / 100).toFixed(2) : null;
+                      return `
+                        <div class="eval-row">
+                          <div class="eval-row-info">
+                            <span class="eval-nombre">${escHtml(ev.nombre)}</span>
+                            <span class="eval-peso">${parseFloat(ev.peso)}% del total</span>
+                          </div>
+                          <div class="eval-row-score">
+                            ${ev.nota != null
+                              ? `<span class="eval-nota-badge" style="background:${color}22;color:${color};border-color:${color}44">${parseFloat(ev.nota)}</span>
+                                 <span class="eval-pts">${pts}pts</span>`
+                              : `<button class="btn btn-ghost btn-sm" onclick="openSetNota(${ev.id},${cid},'${cnameEsc}','${escHtml(ev.nombre).replace(/'/g,"&#39;")}')">Registrar nota</button>`
+                            }
+                          </div>
+                          <button class="eval-del-btn" onclick="deleteEvaluacion(${ev.id},${cid})" title="Eliminar">✕</button>
+                        </div>`;
+                    }).join("")
+                }
+              </div>
+            </div>
+
+            <div class="curso-card-footer">
+              <button class="btn btn-ghost btn-sm" onclick="openEditCurso(${cid},'${cnameEsc}','${escHtml(c.descripcion || "").replace(/'/g,"&#39;")}','${colorSafe}')">✏ Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCurso(${cid})">Eliminar</button>
+            </div>
           </div>
         </div>`;
     }).join("");
@@ -1129,8 +1337,9 @@ async function loadAula() {
   }
 }
 
-function openModalCurso() {
+function openModalCurso(initialColor) {
   const colors = ["#f97316","#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#06b6d4","#ec4899"];
+  const sel = initialColor || colors[0];
   openModal("📚 Nuevo Curso", `
     <div class="form-group">
       <label class="form-label">Nombre del curso</label>
@@ -1143,11 +1352,11 @@ function openModalCurso() {
     <div class="form-group">
       <label class="form-label">Color del curso</label>
       <div class="color-picker-row" id="colorPickerRow">
-        ${colors.map((col, i) =>
-          `<button class="color-swatch${i === 0 ? " selected" : ""}" style="background:${col}" data-color="${col}" onclick="selectCursoColor('${col}')"></button>`
+        ${colors.map(col =>
+          `<button class="color-swatch${col === sel ? " selected" : ""}" style="background:${col}" data-color="${col}" onclick="selectCursoColor('${col}')"></button>`
         ).join("")}
       </div>
-      <input type="hidden" id="curColor" value="${colors[0]}" />
+      <input type="hidden" id="curColor" value="${sel}" />
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
@@ -1178,8 +1387,50 @@ async function submitCurso() {
   }
 }
 
+function openEditCurso(id, nombre, desc, color) {
+  const colors = ["#f97316","#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#06b6d4","#ec4899"];
+  openModal("✏ Editar Curso", `
+    <div class="form-group">
+      <label class="form-label">Nombre del curso</label>
+      <input class="form-input" id="editCurNombre" value="${escHtml(nombre)}" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción</label>
+      <input class="form-input" id="editCurDesc" value="${escHtml(desc)}" placeholder="Profesor, horario..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Color del curso</label>
+      <div class="color-picker-row" id="colorPickerRow">
+        ${colors.map(col =>
+          `<button class="color-swatch${col === color ? " selected" : ""}" style="background:${col}" data-color="${col}" onclick="selectCursoColor('${col}')"></button>`
+        ).join("")}
+      </div>
+      <input type="hidden" id="curColor" value="${color}" />
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitEditCurso(${id})">Guardar Cambios</button>
+    </div>`);
+}
+
+async function submitEditCurso(id) {
+  const nombre = document.getElementById("editCurNombre").value.trim();
+  if (!nombre) { showToast("Ingresa el nombre del curso", "error"); return; }
+  try {
+    await apiFetch(`/api/cursos/${id}`, { method: "PUT", body: JSON.stringify({
+      nombre,
+      descripcion: document.getElementById("editCurDesc").value.trim(),
+      color: document.getElementById("curColor").value,
+    })});
+    showToast("Curso actualizado ✓", "success");
+    closeModal(); loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
 async function deleteCurso(id) {
-  if (!confirm("¿Eliminar este curso? Las tareas asociadas NO se borrarán.")) return;
+  if (!confirm("¿Eliminar este curso? Las evaluaciones se borrarán. Las tareas asociadas NO.")) return;
   try {
     await apiFetch(`/api/cursos/${id}`, { method: "DELETE" });
     showToast("Curso eliminado", "success");
@@ -1189,8 +1440,7 @@ async function deleteCurso(id) {
   }
 }
 
-function openModalTareaAula(materia, color) {
-  // Store in globals so the submit button can read them without HTML-escaping issues
+function openModalTareaAula(materia, color, fechaPreset) {
   window._aulaTareaMateria = materia;
   window._aulaTareaColor   = color || "#3b82f6";
   openModal(`📝 Nueva Tarea — ${escHtml(materia)}`, `
@@ -1213,7 +1463,7 @@ function openModalTareaAula(materia, color) {
       </div>
       <div class="form-group">
         <label class="form-label">Fecha de entrega</label>
-        <input class="form-input" id="atFecha" type="date" />
+        <input class="form-input" id="atFecha" type="date" value="${fechaPreset || ""}" />
       </div>
     </div>
     <div class="form-group">
@@ -1253,6 +1503,98 @@ async function submitTareaAula() {
     }
     showToast("Tarea creada ✓", "success");
     closeModal(); loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+// ── EVALUACIONES (Calificaciones) ─────────────────────────────────────────────
+function openModalEvaluacion(cursoId, cursoNombre) {
+  openModal(`📊 Nueva Evaluación — ${escHtml(cursoNombre)}`, `
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
+      Define el nombre y el peso (%) que tiene esta evaluación sobre la nota final del curso.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Nombre de la evaluación</label>
+      <input class="form-input" id="evNombre" placeholder="Ej: Parcial 1, Quiz 2, Proyecto, Examen Final..." />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Peso sobre la nota final (%)</label>
+        <input class="form-input" id="evPeso" type="number" min="0" max="100" step="0.5" placeholder="Ej: 30" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nota obtenida <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+        <input class="form-input" id="evNota" type="number" min="0" max="100" step="0.1" placeholder="0 – 100" />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitEvaluacion(${cursoId})">Guardar</button>
+    </div>`);
+}
+
+async function submitEvaluacion(cursoId) {
+  const nombre = document.getElementById("evNombre").value.trim();
+  const peso   = document.getElementById("evPeso").value;
+  const nota   = document.getElementById("evNota").value;
+  if (!nombre) { showToast("Ingresa el nombre de la evaluación", "error"); return; }
+  if (!peso || isNaN(parseFloat(peso))) { showToast("Ingresa el peso (%)", "error"); return; }
+  try {
+    const newEval = await apiFetch(`/api/cursos/${cursoId}/evaluaciones`, {
+      method: "POST",
+      body: JSON.stringify({ nombre, peso: parseFloat(peso) }),
+    });
+    // If nota was provided, update it immediately
+    if (nota !== "" && !isNaN(parseFloat(nota))) {
+      await apiFetch(`/api/cursos/evaluaciones/${newEval.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ nota: parseFloat(nota) }),
+      });
+    }
+    showToast("Evaluación registrada ✓", "success");
+    closeModal(); loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+function openSetNota(evalId, cursoId, cursoNombre, evalNombre) {
+  openModal(`✏ Registrar Nota — ${escHtml(evalNombre)}`, `
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
+      Curso: <strong>${escHtml(cursoNombre)}</strong>
+    </p>
+    <div class="form-group">
+      <label class="form-label">Nota obtenida (0 – 100)</label>
+      <input class="form-input" id="setNotaVal" type="number" min="0" max="100" step="0.1" placeholder="Ej: 85" autofocus />
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitSetNota(${evalId},${cursoId})">Guardar Nota</button>
+    </div>`);
+}
+
+async function submitSetNota(evalId, cursoId) {
+  const val = document.getElementById("setNotaVal").value;
+  if (val === "" || isNaN(parseFloat(val))) { showToast("Ingresa una nota válida (0–100)", "error"); return; }
+  try {
+    await apiFetch(`/api/cursos/evaluaciones/${evalId}`, {
+      method: "PUT",
+      body: JSON.stringify({ nota: parseFloat(val) }),
+    });
+    showToast("Nota registrada ✓", "success");
+    closeModal(); loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
+}
+
+async function deleteEvaluacion(evalId, cursoId) {
+  if (!confirm("¿Eliminar esta evaluación?")) return;
+  try {
+    await apiFetch(`/api/cursos/evaluaciones/${evalId}`, { method: "DELETE" });
+    showToast("Evaluación eliminada", "success");
+    loadAula();
   } catch (e) {
     showToast(e.message, "error");
   }
