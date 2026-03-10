@@ -1,7 +1,115 @@
 const express = require("express");
 const router  = express.Router();
 const multer  = require("multer");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq    = require("groq-sdk");
+
+// ── Multer: imágenes en memoria (sin escribir al disco) ──────────────────────
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Solo se aceptan imágenes (JPG, PNG, WEBP, etc.)"), false);
+  },
+});
+
+// ── Prompt ────────────────────────────────────────────────────────────────────
+function buildPrompt() {
+  const hoy = new Date().toISOString().substring(0, 10);
+  return `Eres un asistente especializado en extraer información académica universitaria.
+El usuario sube fotos o capturas de: Moodle, horarios, silabos, WhatsApp, apuntes, listas de tareas, etc.
+Hoy es ${hoy}.
+
+Extrae TODOS los cursos y tareas pendientes que identifiques.
+Responde ÚNICAMENTE con JSON válido, sin explicaciones, con este formato exacto:
+
+{
+  "cursos": [
+    { "nombre": "Nombre del curso", "descripcion": "Profesor y/o código si se ve, sino vacío", "color": "#HEX" }
+  ],
+  "tareas": [
+    {
+      "titulo": "Título de la tarea o evaluación",
+      "materia": "nombre exacto del curso (igual que en cursos)",
+      "fecha_entrega": "YYYY-MM-DD o null",
+      "prioridad": "alta|media|baja",
+      "descripcion": "detalles relevantes si los hay, sino vacío"
+    }
+  ]
+}
+
+Reglas:
+- Colores distintos por curso: #f97316 #3b82f6 #22c55e #a855f7 #ef4444 #eab308 #06b6d4 #ec4899
+- alta = examen/parcial/entrega ≤7 días, media = 1-2 semanas, baja = sin fecha/lectura
+- Fechas relativas calcúlalas desde hoy (${hoy})
+- Solo tareas pendientes`;
+}
+
+// ── POST /api/ia/analizar ─────────────────────────────────────────────────────
+router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
+  const GROQ_KEY = (req.headers["x-groq-key"] || "").trim()
+                || (process.env.GROQ_API_KEY   || "").trim();
+
+  if (!GROQ_KEY) {
+    return res.status(503).json({
+      error: "GROQ_API_KEY no configurada. Ingresá tu clave de Groq en el campo del modal.",
+    });
+  }
+
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: "No se recibieron imágenes." });
+  }
+
+  try {
+    const groq = new Groq({ apiKey: GROQ_KEY });
+
+    const response = await groq.chat.completions.create({
+      model: "meta-llama/llama-4-scout-17b-16e-instruct",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: buildPrompt() },
+          ...req.files.map(f => ({
+            type: "image_url",
+            image_url: { url: `data:${f.mimetype};base64,${f.buffer.toString("base64")}` },
+          })),
+        ],
+      }],
+      max_tokens: 2000,
+    });
+
+    const rawText = response.choices[0].message.content.trim();
+    const jsonStr = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+    const raw = JSON.parse(jsonStr);
+    const COLORS = ["#f97316","#3b82f6","#22c55e","#a855f7","#ef4444","#eab308","#06b6d4","#ec4899"];
+
+    const cursos = (Array.isArray(raw.cursos) ? raw.cursos : [])
+      .map((c, i) => ({
+        nombre:      String(c.nombre      || "").trim().slice(0, 100),
+        descripcion: String(c.descripcion || "").trim().slice(0, 200),
+        color: /^#[0-9a-fA-F]{6}$/.test(c.color) ? c.color : COLORS[i % COLORS.length],
+      }))
+      .filter(c => c.nombre.length > 0);
+
+    const tareas = (Array.isArray(raw.tareas) ? raw.tareas : [])
+      .map(t => ({
+        titulo:        String(t.titulo      || "").trim().slice(0, 200),
+        materia:       String(t.materia     || "").trim().slice(0, 100),
+        descripcion:   String(t.descripcion || "").trim().slice(0, 300),
+        fecha_entrega: /^\d{4}-\d{2}-\d{2}$/.test(t.fecha_entrega) ? t.fecha_entrega : null,
+        prioridad:     ["alta","media","baja"].includes(t.prioridad) ? t.prioridad : "media",
+      }))
+      .filter(t => t.titulo.length > 0);
+
+    res.json({ cursos, tareas });
+  } catch (err) {
+    console.error("[IA]", err.message);
+    res.status(500).json({ error: "Error al analizar: " + (err.message || "desconocido") });
+  }
+});
+
+module.exports = router;
+
 
 // ── Multer: imágenes en memoria (sin escribir al disco) ──────────────────────
 const upload = multer({
