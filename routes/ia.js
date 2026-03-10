@@ -53,19 +53,14 @@ Reglas estrictas:
 
 // ── POST /api/ia/analizar ─────────────────────────────────────────────────────
 router.post("/analizar", upload.array("archivos", 5), async (req, res) => {
-  // Verificar que la API key esté configurada
-  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim() === "") {
-    return res.status(503).json({
-      error: "GEMINI_API_KEY no configurada. Sigue los pasos para obtenerla gratis en aistudio.google.com/app/apikey",
-    });
-  }
+  const GEMINI_KEY = process.env.GEMINI_API_KEY || "AIzaSyA-_aJeA89BAE2VD2_oJyHq1iGEpiVsZeI";
 
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No se recibieron imágenes." });
   }
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(GEMINI_KEY);
     // gemini-1.5-flash: gratis, rápido, soporta visión
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
