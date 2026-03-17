@@ -44,8 +44,8 @@ router.put("/:id", async (req, res) => {
 
 // DELETE curso
 router.delete("/:id", async (req, res) => {
-  const id = Number.parseInt(req.params.id, 10);
-  if (!Number.isInteger(id) || id <= 0) {
+  const id = String(req.params.id || "").trim();
+  if (!/^\d+$/.test(id)) {
     return res.status(400).json({ error: "ID de curso inválido" });
   }
 

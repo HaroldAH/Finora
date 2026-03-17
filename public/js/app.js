@@ -1264,8 +1264,8 @@ async function loadAula() {
       const totalPeso = evals.reduce((sum, ev) => sum + parseFloat(ev.peso), 0);
       const pctBar    = Math.min(100, totalPeso > 0 ? (acum / totalPeso) * 100 : 0);
 
-      // Safe id for use in onclick attrs — cursos use integer IDs so safe
-      const cid = c.id;
+      // Cockroach ids can be BIGINT, keep as string to avoid JS precision loss.
+      const cid = String(c.id);
       const cnameEsc = escHtml(c.nombre).replace(/'/g, "&#39;");
       const colorSafe = color.replace(/'/g, "");
 
@@ -1315,7 +1315,7 @@ async function loadAula() {
             <div class="curso-section">
               <div class="curso-section-header">
                 <span class="curso-section-title">📊 Calificaciones</span>
-                <button class="btn btn-ghost btn-sm" onclick="openModalEvaluacion(${cid},'${cnameEsc}')">+ Evaluación</button>
+                <button class="btn btn-ghost btn-sm" onclick="openModalEvaluacion('${cid}','${cnameEsc}')">+ Evaluación</button>
               </div>
               ${evals.length > 0 ? `
               <div class="eval-progress-wrap">
@@ -1336,7 +1336,7 @@ async function loadAula() {
                             <div class="eval-peso-row">
                               <input type="number" class="eval-inline-input" value="${parseFloat(ev.peso)}"
                                 min="0" max="100" step="0.5"
-                                onchange="savePesoInline(${ev.id}, this.value)"
+                                onchange="savePesoInline('${String(ev.id)}', this.value)"
                                 title="Editar porcentaje" />
                               <span class="eval-peso-label">% del total</span>
                             </div>
@@ -1344,11 +1344,11 @@ async function loadAula() {
                           <div class="eval-row-score">
                             <input type="number" class="eval-nota-input" value="${ev.nota != null ? parseFloat(ev.nota) : ''}"
                               min="0" max="100" step="0.1" placeholder="—"
-                              onchange="saveNotaInline(${ev.id}, this.value)"
+                              onchange="saveNotaInline('${String(ev.id)}', this.value)"
                               title="Nota (0–100)" />
                             ${ev.nota != null ? `<span class="eval-pts">${pts}pts</span>` : ''}
                           </div>
-                          <button class="eval-del-btn" onclick="deleteEvaluacion(${ev.id},${cid})" title="Eliminar">✕</button>
+                          <button class="eval-del-btn" onclick="deleteEvaluacion('${String(ev.id)}','${cid}')" title="Eliminar">✕</button>
                         </div>`;
                     }).join("")
                 }
@@ -1356,8 +1356,8 @@ async function loadAula() {
             </div>
 
             <div class="curso-card-footer">
-              <button class="btn btn-ghost btn-sm" onclick="openEditCurso(${cid},'${cnameEsc}','${escHtml(c.descripcion || "").replace(/'/g,"&#39;")}','${colorSafe}')">✏ Editar</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteCurso(${cid})">Eliminar</button>
+              <button class="btn btn-ghost btn-sm" onclick="openEditCurso('${cid}','${cnameEsc}','${escHtml(c.descripcion || "").replace(/'/g,"&#39;")}','${colorSafe}')">✏ Editar</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCurso('${cid}')">Eliminar</button>
             </div>
           </div>
         </div>`;
@@ -1460,8 +1460,8 @@ async function submitEditCurso(id) {
 }
 
 function deleteCurso(id) {
-  const safeId = Number.parseInt(id, 10);
-  if (!Number.isInteger(safeId) || safeId <= 0) {
+  const safeId = String(id || "").trim();
+  if (!/^\d+$/.test(safeId)) {
     showToast("ID de curso inválido", "error");
     return;
   }
@@ -1472,7 +1472,7 @@ function deleteCurso(id) {
     </p>
     <div class="form-actions" style="justify-content:center">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-danger" onclick="confirmDeleteCurso(${safeId})">Eliminar</button>
+      <button class="btn btn-danger" onclick="confirmDeleteCurso('${safeId}')">Eliminar</button>
     </div>`);
 }
 
@@ -1557,6 +1557,7 @@ async function submitTareaAula() {
 
 // ── EVALUACIONES (Calificaciones) ─────────────────────────────────────────────
 function openModalEvaluacion(cursoId, cursoNombre) {
+  const cid = String(cursoId || "").replace(/'/g, "");
   openModal(`📊 Nueva Evaluación — ${escHtml(cursoNombre)}`, `
     <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">
       Define el nombre y el peso (%) que tiene esta evaluación sobre la nota final del curso.
@@ -1577,7 +1578,7 @@ function openModalEvaluacion(cursoId, cursoNombre) {
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="submitEvaluacion(${cursoId})">Guardar</button>
+      <button class="btn btn-primary" onclick="submitEvaluacion('${cid}')">Guardar</button>
     </div>`);
 }
 
@@ -1637,8 +1638,8 @@ async function submitSetNota(evalId, cursoId) {
 }
 
 function deleteEvaluacion(evalId, cursoId) {
-  const safeEvalId = Number.parseInt(evalId, 10);
-  if (!Number.isInteger(safeEvalId) || safeEvalId <= 0) {
+  const safeEvalId = String(evalId || "").trim();
+  if (!/^\d+$/.test(safeEvalId)) {
     showToast("ID de evaluación inválido", "error");
     return;
   }
@@ -1649,7 +1650,7 @@ function deleteEvaluacion(evalId, cursoId) {
     </p>
     <div class="form-actions" style="justify-content:center">
       <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-danger" onclick="confirmDeleteEvaluacion(${safeEvalId})">Eliminar</button>
+      <button class="btn btn-danger" onclick="confirmDeleteEvaluacion('${safeEvalId}')">Eliminar</button>
     </div>`);
 }
 
