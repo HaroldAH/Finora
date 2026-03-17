@@ -1460,15 +1460,31 @@ async function submitEditCurso(id) {
 }
 
 function deleteCurso(id) {
-  openConfirm("¿Eliminar este curso? Las evaluaciones se borrarán. Las tareas asociadas NO se eliminarán.", async () => {
-    try {
-      await apiFetch(`/api/cursos/${id}`, { method: "DELETE" });
-      showToast("Curso eliminado", "success");
-      loadAula();
-    } catch (e) {
-      showToast(e.message, "error");
-    }
-  });
+  const safeId = Number.parseInt(id, 10);
+  if (!Number.isInteger(safeId) || safeId <= 0) {
+    showToast("ID de curso inválido", "error");
+    return;
+  }
+
+  openModal("⚠️ Confirmar acción", `
+    <p style="text-align:center;font-size:15px;line-height:1.5;margin:10px 0 24px">
+      ¿Eliminar este curso? Las evaluaciones se borrarán. Las tareas asociadas NO se eliminarán.
+    </p>
+    <div class="form-actions" style="justify-content:center">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDeleteCurso(${safeId})">Eliminar</button>
+    </div>`);
+}
+
+async function confirmDeleteCurso(id) {
+  try {
+    await apiFetch(`/api/cursos/${id}`, { method: "DELETE" });
+    closeModal();
+    showToast("Curso eliminado", "success");
+    loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
 }
 
 function openModalTareaAula(materia, color, fechaPreset) {
@@ -1621,15 +1637,31 @@ async function submitSetNota(evalId, cursoId) {
 }
 
 function deleteEvaluacion(evalId, cursoId) {
-  openConfirm("¿Eliminar esta evaluación?", async () => {
-    try {
-      await apiFetch(`/api/cursos/evaluaciones/${evalId}`, { method: "DELETE" });
-      showToast("Evaluación eliminada", "success");
-      loadAula();
-    } catch (e) {
-      showToast(e.message, "error");
-    }
-  });
+  const safeEvalId = Number.parseInt(evalId, 10);
+  if (!Number.isInteger(safeEvalId) || safeEvalId <= 0) {
+    showToast("ID de evaluación inválido", "error");
+    return;
+  }
+
+  openModal("⚠️ Confirmar acción", `
+    <p style="text-align:center;font-size:15px;line-height:1.5;margin:10px 0 24px">
+      ¿Eliminar esta evaluación?
+    </p>
+    <div class="form-actions" style="justify-content:center">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDeleteEvaluacion(${safeEvalId})">Eliminar</button>
+    </div>`);
+}
+
+async function confirmDeleteEvaluacion(evalId) {
+  try {
+    await apiFetch(`/api/cursos/evaluaciones/${evalId}`, { method: "DELETE" });
+    closeModal();
+    showToast("Evaluación eliminada", "success");
+    loadAula();
+  } catch (e) {
+    showToast(e.message, "error");
+  }
 }
 
 // ── IA AUTO-DETECT ────────────────────────────────────────────────────────────
@@ -2039,19 +2071,6 @@ async function loadReportes() {
 }
 
 // ── HELPERS ──────────────────────────────────────────────────────────────────
-function openConfirm(msg, onConfirm) {
-  openModal("⚠️ Confirmar acción", `
-    <p style="text-align:center;font-size:15px;line-height:1.5;margin:10px 0 24px">${escHtml(msg)}</p>
-    <div class="form-actions" style="justify-content:center">
-      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-danger" id="confirmOkBtn">Eliminar</button>
-    </div>`);
-  setTimeout(() => {
-    const btn = document.getElementById("confirmOkBtn");
-    if (btn) btn.onclick = () => { closeModal(); onConfirm(); };
-  }, 50);
-}
-
 async function saveNotaInline(evalId, val) {
   const nota = val === "" ? null : parseFloat(val);
   if (val !== "" && isNaN(nota)) return;

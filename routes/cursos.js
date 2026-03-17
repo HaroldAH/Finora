@@ -44,9 +44,14 @@ router.put("/:id", async (req, res) => {
 
 // DELETE curso
 router.delete("/:id", async (req, res) => {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "ID de curso inválido" });
+  }
+
   try {
-    const { rowCount } = await db.query("DELETE FROM cursos WHERE id=$1", [req.params.id]);
-    if (rowCount === 0) return res.status(404).json({ error: "No encontrado" });
+    const { rowCount } = await db.query("DELETE FROM cursos WHERE id=$1", [id]);
+    if (rowCount === 0) return res.status(404).json({ error: `Curso no encontrado (id: ${id})` });
     res.json({ message: "Eliminado" });
   } catch (err) {
     res.status(500).json({ error: err.message });
